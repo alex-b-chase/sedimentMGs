@@ -14,8 +14,10 @@ Filtering was performed with [BBMap](https://jgi.doe.gov/data-and-tools/bbtools/
 ```
 bbduk.sh \
 qtrim=rl trimq=10 threads=2 \
+minlen=25 ktrim=r k=25 ref=$BBMAPDIR/nextera.fa.gz hdist=1 \
+stats=$REF.stats.txt \
 in1=$FFILE in2=$RFILE \
-out1=$REF.clean1.fq out2=$REF.clean2.fq
+out1=$REF.clean1.fq out2=$REF.clean2.fq 
 
 repair.sh \
 in=$REF.clean1.fq in2=$REF.clean2.fq \
@@ -62,27 +64,27 @@ So, we will use the [IDBA assembler](https://www.ncbi.nlm.nih.gov/pubmed/2249575
 
 ```
 ## First, we have 3 technical replicates that need to be combined. convert each paired-end, post-QC sample to fastA format
-fq2fa --merge <(zcat ${sampleID}_A.filter.clean.R1.fq.gz) <(zcat ${sampleID}_A.filter.clean.R2.fq.gz) ${sampleID}.A.temp.fas
-fq2fa --merge <(zcat ${sampleID}_B.filter.clean.R1.fq.gz) <(zcat ${sampleID}_B.filter.clean.R2.fq.gz) ${sampleID}.B.temp.fas
-fq2fa --merge <(zcat ${sampleID}_C.filter.clean.R1.fq.gz) <(zcat ${sampleID}_C.filter.clean.R2.fq.gz) ${sampleID}.C.temp.fas
+fq2fa --merge <(zcat ${REF}_A.filter.clean.R1.fq.gz) <(zcat ${REF}_A.filter.clean.R2.fq.gz) ${REF}.A.temp.fas
+fq2fa --merge <(zcat ${REF}_B.filter.clean.R1.fq.gz) <(zcat ${REF}_B.filter.clean.R2.fq.gz) ${REF}.B.temp.fas
+fq2fa --merge <(zcat ${REF}_C.filter.clean.R1.fq.gz) <(zcat ${REF}_C.filter.clean.R2.fq.gz) ${REF}.C.temp.fas
 
 ## can then combine
-cat ${sampleID}.A.temp.fas ${sampleID}.B.temp.fas ${sampleID}.C.temp.fas > $OUTDIR/${sampleID}.fas
+cat ${REF}.A.temp.fas ${REF}.B.temp.fas ${REF}.C.temp.fas > $OUTDIR/${REF}.fas
 
 ## ready for IDBA to do its thing
-idba_ud -r ${sampleID}.fas --pre_correction \
+idba_ud -r ${REF}.fas --pre_correction \
 --mink 30 --maxk 200 --step 10 --num_threads 16 \
---min_contig 1000 --out ${sampleID}
+--min_contig 1000 --out ${REF}
 
-## the assembly will be output in a folder called ${sampleID}/contigs.fna
+## the assembly will be output in a folder called ${REF}/contigs.fna
 
 ## I like to rename the assembled contigs with the sampleID for easier processing later
 ## extra precaution to gets reads into suitable format for binning steps
 
 ## just make sure IDBA got rid of contigs <1000bp and rename fastA header to append sampleID
-bbduk.sh in=${sampleID}/contig.fna out=${sampleID}.contigs.L1kbp.temp.fna minlen=1000 ow=t
+bbduk.sh in=${REF}/contig.fna out=${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
 
-rename.sh in=${sampleID}.contigs.L1kbp.temp.fna \
-out=${sampleID}.contigs.L1kbp.fna prefix=${sampleID} addprefix=t ow=t
+rename.sh in=${REF}.contigs.L1kbp.temp.fna \
+out=${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
 
 ```

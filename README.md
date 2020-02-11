@@ -87,7 +87,7 @@ idba_ud \
 
 ## just make sure IDBA got rid of contigs <1000bp and rename fastA header to append sampleID
 bbduk.sh \
-in=${REF}/contig.fna \
+in=${REF}/contig.fa \
 out=${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
 
 rename.sh \

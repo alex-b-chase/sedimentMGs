@@ -4,9 +4,11 @@ analysis into the metagenomes derived from Moorea coral-algal gradient
 # Metagenome analysis and pipeline
 
 Samples were run by UCSD CMI seed grant - N=20 samples
+
 Samples were run in 3 technical replicates (A, B, C) on an Illumina 
 
-** 1. QC filter **
+**1. QC filter**
+
 Filtering was performed with [BBMap](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbmap-guide/)
 
 ```
@@ -22,7 +24,7 @@ out=$REF.filter.clean.R1.fq.gz out2=$REF.filter.clean.R2.fq.gz
 ### the *.filter.clean.R*.fq.gz files are the ones to be used for assembly input
 ```
 
-** 2. Gene-centric approach **
+**2. Gene-centric approach**
 We can use the non-assembled, merged reads to perform a gene-centric approach for taxonomy and function
 Some reads cannot be merged, so we will only take the forward reads of those, most of these will be short and probably will not annotate - but worth a shot!
 

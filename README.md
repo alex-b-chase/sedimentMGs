@@ -48,13 +48,16 @@ cat $REF.filter.clean.merged.fa $REF.filter.clean.unmerged1.fa > $REF.filter.tot
 ## the $REF.filter.total.fa can then be used to call ORFs
 ## for MGs we need to activate the -p meta option - this will only call ORFs, not annotate reads
 
-prodigal -i $REF.filter.total.fa \
+prodigal \
+-i $REF.filter.total.fa \
 -a $REF.filter.total.faa -q \
 -f gff -p meta > $REF.gff
 
 ## the $REF.filter.total.faa is the file we can parse for specific taxonomic marker genes or functional genes
 
 ```
+
+We will pass the ORF predicted file to the taxonomic pipeline outlined [here](https://github.com/alex-b-chase/elevation-community) for community profiles. We can compare these to the 16S community reads.
 
 **3. Genome-centric approach**
 
@@ -72,7 +75,8 @@ fq2fa --merge <(zcat ${REF}_C.filter.clean.R1.fq.gz) <(zcat ${REF}_C.filter.clea
 cat ${REF}.A.temp.fas ${REF}.B.temp.fas ${REF}.C.temp.fas > $OUTDIR/${REF}.fas
 
 ## ready for IDBA to do its thing
-idba_ud -r ${REF}.fas --pre_correction \
+idba_ud \
+-r ${REF}.fas --pre_correction \
 --mink 30 --maxk 200 --step 10 --num_threads 16 \
 --min_contig 1000 --out ${REF}
 
@@ -82,9 +86,12 @@ idba_ud -r ${REF}.fas --pre_correction \
 ## extra precaution to gets reads into suitable format for binning steps
 
 ## just make sure IDBA got rid of contigs <1000bp and rename fastA header to append sampleID
-bbduk.sh in=${REF}/contig.fna out=${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
+bbduk.sh \
+in=${REF}/contig.fna \
+out=${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
 
-rename.sh in=${REF}.contigs.L1kbp.temp.fna \
+rename.sh \
+in=${REF}.contigs.L1kbp.temp.fna \
 out=${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
 
 ```

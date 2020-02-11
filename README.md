@@ -9,7 +9,7 @@ Samples were run in 3 technical replicates (A, B, C) on an Illumina
 
 **1. QC filter**
 
-Filtering was performed with [BBMap](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbmap-guide/)
+Filtering was performed with [BBMap](https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/bbmap-guide/). Steps 1 and 2 can be found in [bbmapQC](bbmapQC/)
 
 ```
 bbduk.sh \
@@ -25,7 +25,9 @@ out=$REF.filter.clean.R1.fq.gz out2=$REF.filter.clean.R2.fq.gz
 ```
 
 **2. Gene-centric approach**
-We can use the non-assembled, merged reads to perform a gene-centric approach for taxonomy and function
+
+Again we will use BBMap (it literally has everything!). We can use the non-assembled, merged reads to perform a gene-centric approach for taxonomy and function
+
 Some reads cannot be merged, so we will only take the forward reads of those, most of these will be short and probably will not annotate - but worth a shot!
 
 ```
@@ -41,5 +43,17 @@ in=$REF.filter.clean.unmerged.fq.gz out=$REF.filter.clean.unmerged1.fa out2=$REF
 ## only take the forward read and see if that will annotate, do not want duplicates
 cat $REF.filter.clean.merged.fa $REF.filter.clean.unmerged1.fa > $REF.filter.total.fa
 
+## the $REF.filter.total.fa can then be used to call ORFs
+## for MGs we need to activate the -p meta option - this will only call ORFs, not annotate reads
+
+prodigal -i $REF.filter.total.fa \
+-a $REF.filter.total.faa -q \
+-f gff -p meta > $REF.gff
+
+## the $REF.filter.total.faa is the file we can parse for specific taxonomic marker genes or functional genes
+
 ```
 
+**3. Genome-centric approach**
+
+Again we will use BBMap (it literally has everything!). We can use the non-assembled, merged reads to perform a gene-centric approach for taxonomy and function

@@ -56,4 +56,33 @@ prodigal -i $REF.filter.total.fa \
 
 **3. Genome-centric approach**
 
-Again we will use BBMap (it literally has everything!). We can use the non-assembled, merged reads to perform a gene-centric approach for taxonomy and function
+For the assembly step, we will take some insights into this [recent paper](https://www.nature.com/articles/s41564-019-0449-y.pdf?origin=ppub) describing MAGs in another complex microbial community, soil. Soils and sediments both have issues with high species complexity, which can create problems in assembly and binning steps.
+
+So, we will use the [IDBA assembler](https://www.ncbi.nlm.nih.gov/pubmed/22495754) which is optimized for SAGs and MAGs. This software requires specific file format as input so we need to do a little work prior to assembly.
+
+```
+## First, we have 3 technical replicates that need to be combined. convert each paired-end, post-QC sample to fastA format
+fq2fa --merge <(zcat ${sampleID}_A.filter.clean.R1.fq.gz) <(zcat ${sampleID}_A.filter.clean.R2.fq.gz) ${sampleID}.A.temp.fas
+fq2fa --merge <(zcat ${sampleID}_B.filter.clean.R1.fq.gz) <(zcat ${sampleID}_B.filter.clean.R2.fq.gz) ${sampleID}.B.temp.fas
+fq2fa --merge <(zcat ${sampleID}_C.filter.clean.R1.fq.gz) <(zcat ${sampleID}_C.filter.clean.R2.fq.gz) ${sampleID}.C.temp.fas
+
+## can then combine
+cat ${sampleID}.A.temp.fas ${sampleID}.B.temp.fas ${sampleID}.C.temp.fas > $OUTDIR/${sampleID}.fas
+
+## ready for IDBA to do its thing
+idba_ud -r ${sampleID}.fas --pre_correction \
+--mink 30 --maxk 200 --step 10 --num_threads 16 \
+--min_contig 1000 --out ${sampleID}
+
+## the assembly will be output in a folder called ${sampleID}/contigs.fna
+
+## I like to rename the assembled contigs with the sampleID for easier processing later
+## extra precaution to gets reads into suitable format for binning steps
+
+## just make sure IDBA got rid of contigs <1000bp and rename fastA header to append sampleID
+bbduk.sh in=${sampleID}/contig.fna out=${sampleID}.contigs.L1kbp.temp.fna minlen=1000 ow=t
+
+rename.sh in=${sampleID}.contigs.L1kbp.temp.fna \
+out=${sampleID}.contigs.L1kbp.fna prefix=${sampleID} addprefix=t ow=t
+
+```

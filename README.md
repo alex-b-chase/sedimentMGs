@@ -59,6 +59,16 @@ prodigal \
 
 We will pass the ORF predicted file to the taxonomic pipeline outlined [here](https://github.com/alex-b-chase/elevation-community) for community profiles. We can compare these to the 16S community reads.
 
+__2A. Taxonomic Classification__
+
+In brief, we will utilize the phylogenetic classification of each marker gene read against the database in this paper:
+>AB Chase, Z Gomez-Lunar, AE Lopez, J Li, SD Allison, AC Martiny, and JBH Martiny. 2018. Emergence of soil bacterial ecotypes along a climate gradient. Environmental Microbiology.
+
+The database consists of 7392 publicly available genomes that are designated as ‘representative’ genomes by the PATRIC database, plus other soil derived genomic isolates. Processing includes:
+1. Run all ORFs against a [BLAT](https://genome.ucsc.edu/FAQ/FAQblat.html) filter against the curated protein database
+2. Secondary filter with Hidden Markov Models ([HMMer](http://hmmer.org/)) against aligned proteins
+3. Phylogenetic placement of each marker gene read to the reference phylogeny with [pplacer](https://matsen.fhcrc.org/pplacer/)
+
 **3. Genome-centric approach**
 
 For the assembly step, we will take some insights into this [recent paper](https://www.nature.com/articles/s41564-019-0449-y.pdf?origin=ppub) describing MAGs in another complex microbial community, soil. Soils and sediments both have issues with high species complexity, which can create problems in assembly and binning steps.

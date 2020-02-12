@@ -107,3 +107,5 @@ in=${REF}.contigs.L1kbp.temp.fna \
 out=${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
 
 ```
+
+All scripts to process this step are located in [ibda_assem](ibda_assem/)

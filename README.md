@@ -57,7 +57,9 @@ prodigal \
 
 ```
 
-We will pass the ORF predicted file to the taxonomic pipeline outlined [here](https://github.com/alex-b-chase/elevation-community) for community profiles. We can compare these to the 16S community reads.
+We will pass the ORF predicted file to:
+1. Taxonomic Characterization: we will use the taxonomic pipeline outlined [here](https://github.com/alex-b-chase/elevation-community) for community profiles. We can compare these to the 16S community reads.
+2. Functional Characterization: NEED TO DO
 
 __2A. Taxonomic Classification__
 

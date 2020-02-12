@@ -61,13 +61,15 @@ We will pass the ORF predicted file to the taxonomic pipeline outlined [here](ht
 
 __2A. Taxonomic Classification__
 
-In brief, we will utilize the phylogenetic classification of each marker gene read against the database in this paper:
+In brief, we will utilize the phylogenetic classification of 21 taxonomic marker genes against the database described in this paper:
 >AB Chase, Z Gomez-Lunar, AE Lopez, J Li, SD Allison, AC Martiny, and JBH Martiny. 2018. Emergence of soil bacterial ecotypes along a climate gradient. Environmental Microbiology.
 
 The database consists of 7392 publicly available genomes that are designated as ‘representative’ genomes by the PATRIC database, plus other soil derived genomic isolates. Processing includes:
-1. Run all ORFs against a [BLAT](https://genome.ucsc.edu/FAQ/FAQblat.html) filter against the curated protein database
-2. Secondary filter with Hidden Markov Models ([HMMer](http://hmmer.org/)) against aligned proteins
+1. Run all ORFs with a [BLAT](https://genome.ucsc.edu/FAQ/FAQblat.html) filter against the curated protein database
+2. Secondary, more stringent filter with Hidden Markov Models ([HMMer](http://hmmer.org/)) against the aligned proteins
 3. Phylogenetic placement of each marker gene read to the reference phylogeny with [pplacer](https://matsen.fhcrc.org/pplacer/)
+
+Reads will be assigned to the best node in the phylogeny, giving a more accurate, conservative representation of the taxonomic assignment. In understudied systems (i.e., soils and sediments), I would rather be more conservative with these assignments as known, reference genomes in most databases do NOT encompass the diversity of these microbial communities.
 
 **3. Genome-centric approach**
 

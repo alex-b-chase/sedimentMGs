@@ -79,35 +79,40 @@ For the assembly step, we will take some insights into this [recent paper](https
 
 So, we will use the [IDBA assembler](https://www.ncbi.nlm.nih.gov/pubmed/22495754) which is optimized for SAGs and MAGs. This software requires specific file format as input so we need to do a little work prior to assembly.
 
+IDBA used a lot of memory and wasn't feasible with the number of samples. Scripts can still be found in [ibda_assem](ibda_assem/), but ended up going with [megahit](https://github.com/voutcn/megahit) for this initial assembly.
+
 ```
-## First, we have 3 technical replicates that need to be combined. convert each paired-end, post-QC sample to fastA format
-fq2fa --merge <(zcat ${REF}_A.filter.clean.R1.fq.gz) <(zcat ${REF}_A.filter.clean.R2.fq.gz) ${REF}.A.temp.fas
-fq2fa --merge <(zcat ${REF}_B.filter.clean.R1.fq.gz) <(zcat ${REF}_B.filter.clean.R2.fq.gz) ${REF}.B.temp.fas
-fq2fa --merge <(zcat ${REF}_C.filter.clean.R1.fq.gz) <(zcat ${REF}_C.filter.clean.R2.fq.gz) ${REF}.C.temp.fas
+# megahit allows for cross-assembly of the replicates A,B,C
 
-## can then combine
-cat ${REF}.A.temp.fas ${REF}.B.temp.fas ${REF}.C.temp.fas > $OUTDIR/${REF}.fas
+READ1=$REFBASE/${REF}_A.filter.clean.R1.fq.gz,$REFBASE/${REF}_B.filter.clean.R1.fq.gz,$REFBASE/${REF}_C.filter.clean.R1.fq.gz
+READ2=$REFBASE/${REF}_A.filter.clean.R2.fq.gz,$REFBASE/${REF}_B.filter.clean.R2.fq.gz,$REFBASE/${REF}_C.filter.clean.R2.fq.gz
 
-## ready for IDBA to do its thing
-idba_ud \
--r ${REF}.fas --pre_correction \
---mink 30 --maxk 200 --step 10 --num_threads 16 \
---min_contig 1000 --out ${REF}
+cd $OUTDIR
 
-## the assembly will be output in a folder called ${REF}/contigs.fna
+# Megahit - much less resource-intensive than metaSPades or IDBA with comparable results
 
-## I like to rename the assembled contigs with the sampleID for easier processing later
+megahit \
+-1 $READ1 \
+-2 $READ2 \
+-t 16 \
+--min-count 3 \
+--k-list 31,41,51,61,71,81,91,95,101,105,111 \
+--kmin-1pass \
+--min-contig-len 1000 \
+--memory 0.95 \
+--out-dir ${REF} \
+--continue
+
+
 ## extra precaution to gets reads into suitable format for binning steps
+bbduk.sh in=${REF}/final.contigs.fa out=$OUTDIR/${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
 
-## just make sure IDBA got rid of contigs <1000bp and rename fastA header to append sampleID
-bbduk.sh \
-in=${REF}/contig.fa \
-out=${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
+rename.sh in=$OUTDIR/${REF}.contigs.L1kbp.temp.fna \
+out=$OUTDIR/${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
 
-rename.sh \
-in=${REF}.contigs.L1kbp.temp.fna \
-out=${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
+rm -rf $OUTDIR/${REF}/
+rm -f $OUTDIR/${REF}.contigs.L1kbp.temp.fna
 
 ```
 
-All scripts to process this step are located in [ibda_assem](ibda_assem/)
+All scripts to process this step are located in [mega_assem](mega_assem/)

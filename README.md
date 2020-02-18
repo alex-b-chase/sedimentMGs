@@ -71,6 +71,27 @@ The database consists of 7392 publicly available genomes that are designated as 
 2. Secondary, more stringent filter with Hidden Markov Models ([HMMer](http://hmmer.org/)) against the aligned proteins
 3. Phylogenetic placement of each marker gene read to the reference phylogeny with [pplacer](https://matsen.fhcrc.org/pplacer/)
 
+```
+blat -prot -fastMap -minIdentity=20 -out=blast8 \
+$BLASTDB ${f} temp.20.${sampleID}.txt
+
+# subset the giant output file for only relevant information (i.e. query sequence and protein match)
+cut -f1-2 temp.20.${sampleID}.txt | \
+awk 'BEGIN{FS="\t"; OFS="\t"} {gsub(/^[^_]*_/, "", $2); print}' | \
+sort -u > $OUTDIR/${sampleID}.blat.total.txt
+
+# now subet the marker gene reads from the MG library
+cut -f1 $OUTDIR/${sampleID}.blat.total.txt | sort -u | sed 's/[ ]*$//' > $OUTDIR/${sampleID}.blat.temp.txt
+
+# filter each MG by marker gene using BBMap software (WAY faster than my own scripts)
+filterbyname.sh \
+in=${sampleID}.filter.total.faa \
+out=$OUTDIR/${sampleID}.blat.markers.faa \
+names=$OUTDIR/${sampleID}.blat.temp.txt ow=t include=t 2>/dev/null
+
+rm -f $OUTDIR/${sampleID}.blat.temp.txt
+```
+
 Reads will be assigned to the best node in the phylogeny, giving a more accurate, conservative representation of the taxonomic assignment. In understudied systems (i.e., soils and sediments), I would rather be more conservative with these assignments as known, reference genomes in most databases do NOT encompass the diversity of these microbial communities.
 
 **3. Genome-centric approach**

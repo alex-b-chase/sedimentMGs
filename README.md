@@ -130,7 +130,7 @@ do
 
 		# rename each read to index each sequence
 		cat ${protein}.temp.faa | awk '/^>/ {$0=NR"_"$0} 1' | \
-    sed 's/ //g; s/>//g' | awk '/^[1-9]/ {$0=">"$0} 1' > ${protein}.blat.faa
+    		sed 's/ //g; s/>//g' | awk '/^[1-9]/ {$0=">"$0} 1' > ${protein}.blat.faa
 		rm ${protein}.temp.faa
 
 	else 

@@ -92,6 +92,121 @@ names=$OUTDIR/${sampleID}.blat.temp.txt ow=t include=t 2>/dev/null
 rm -f $OUTDIR/${sampleID}.blat.temp.txt
 ```
 
+Next, we will aggregate the marker genes that were subset from each MG
+```
+for f in *.blat.total.txt
+do
+
+	metagenome=${f%.blat.total.txt}
+
+	# rename each read to reflect the MGID on the fasta header and index each sequence
+	cat ${metagenome}.blat.markers.faa | sed -e "s/^>/>${metagenome}_/" | sed '/^>/ s/ .*//' > ${metagenome}.temp.faa
+	cat $f | sed -e "s/^/${metagenome}_/" | cut -f1-2 > $metagenome.blat.temp.txt
+
+done
+
+cat *.temp.faa > total.markers.faa 
+cat *.blat.temp.txt > total.blatmarkers.txt 
+rm -f *.temp.faa
+rm -f *.blat.temp.txt
+
+# now subset by each marker gene
+
+while read protein
+do
+	echo "Processing ${protein}..."
+
+	if [ ! -f "${protein}.blat.faa" ]
+	then
+
+		grep -w "${protein}p" total.blatmarkers.txt | cut -f1 | sort -u | sed 's/[ ]*$//' > ${protein}.temp.txt
+
+		# filter each MG by marker gene using BBMap software (WAY faster than my own scripts)
+		filterbyname.sh \
+		in=total.markers.faa  \
+		out=${protein}.temp.faa \
+		names=${protein}.temp.txt ow=t include=t 2>/dev/null
+		rm ${protein}.temp.txt
+
+		# rename each read to index each sequence
+		cat ${protein}.temp.faa | awk '/^>/ {$0=NR"_"$0} 1' | \
+    sed 's/ //g; s/>//g' | awk '/^[1-9]/ {$0=">"$0} 1' > ${protein}.blat.faa
+		rm ${protein}.temp.faa
+
+	else 
+		continue 
+	fi
+
+done < $BASEDIR/marker_genes.txt
+```
+
+Can now parse these through the HMM profiles and test whether the filter was stringent enough. Loop through various e-values for the HMM profiles and test pplacer
+
+```
+for minID in {10,15,20,25,30}
+do
+
+	cd $REFDIR/blat_output
+
+	hmmsearch --tblout ${protein}.hmm.txt -E 1e-${minID} \
+	--cpu ${THREAD} $HMMPROF/${protein}p.hmm ${protein}.blat.faa > ${protein}.log.txt
+
+	cat ${protein}.hmm.txt | cut -f1 -d' ' | sort | uniq > ${protein}.temp.txt
+
+	### subset new HMMer filtered reads
+	filterbyname.sh \
+	in=${protein}.blat.faa \
+	out=total_${protein}.${minID}.hmm.faa \
+	names=${protein}.temp.txt ow=t include=t 2>/dev/null
+
+	rm -f ${protein}.temp.txt
+	rm -f ${protein}.hmm.txt
+	rm -f ${protein}.log.txt
+
+	cat total_${protein}.${minID}.hmm.faa | tr -d '*' > $OUTDIR/${protein}.${minID}.temp.hmm.faa
+
+	cd $OUTDIR
+	rm -f $OUTDIR/${protein}.${minID}.fa
+
+	clustalo-1.2.0 --profile1 $REFDB/${protein}p.refpkg/${protein}p.good.final.aln \
+	-i ${protein}.${minID}.temp.hmm.faa -o $OUTDIR/${protein}.${minID}.fa
+
+	rm ${protein}.${minID}.temp.hmm.faa
+
+	### now can test input for pplacer 
+	pplacer --pretend \
+	-c $REFDB/${protein}p.refpkg \
+	${protein}.${minID}.fa > ${protein}.${minID}.pplacer.log
+
+	### check if pplacer worked
+	if grep -Fxq "everything looks OK." ${protein}.${minID}.pplacer.log
+	then
+		echo -e "${protein}\t${minID}" >> $OUTDIR/hmmerfiltered.txt
+		break
+
+	else 
+		rm -f $REFDIR/blat_output/total_${protein}.${minID}.hmm.faa
+		rm -f $OUTDIR/${protein}.${minID}.fa
+		continue
+
+	fi
+
+done
+
+cd $OUTDIR
+
+rm -f ${protein}.*.pplacer.log
+
+### now can run pplacer 
+pplacer -c $REFDB/${protein}p.refpkg \
+${protein}.${minID}.fa \
+-p --keep-at-most 20 
+
+guppy to_csv --point-mass --pp ${protein}.${minID}.jplace > ${protein}.${minID}.csv
+guppy fat --node-numbers --point-mass --pp ${protein}.*.jplace
+```
+
+
 Reads will be assigned to the best node in the phylogeny, giving a more accurate, conservative representation of the taxonomic assignment. In understudied systems (i.e., soils and sediments), I would rather be more conservative with these assignments as known, reference genomes in most databases do NOT encompass the diversity of these microbial communities.
 
 **3. Genome-centric approach**

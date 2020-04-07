@@ -14,10 +14,11 @@ Filtering was performed with [BBMap](https://jgi.doe.gov/data-and-tools/bbtools/
 ```
 bbduk.sh \
 qtrim=rl trimq=10 threads=2 \
-minlen=25 ktrim=r k=25 ref=$BBMAPDIR/nextera.fa.gz hdist=1 \
+minlen=25 ktrim=r k=25 ref=$BBMAPDIR/adapters.fa hdist=1 \
 stats=$REF.stats.txt \
 in1=$FFILE in2=$RFILE \
-out1=$REF.clean1.fq out2=$REF.clean2.fq 
+out1=$REF.clean1.fq out2=$REF.clean2.fq  \
+stats=$REF.stats.txt tbo
 
 repair.sh \
 in=$REF.clean1.fq in2=$REF.clean2.fq \
@@ -152,40 +153,37 @@ For the assembly step, we will take some insights into this [recent paper](https
 
 So, we will use the [IDBA assembler](https://www.ncbi.nlm.nih.gov/pubmed/22495754) which is optimized for SAGs and MAGs. This software requires specific file format as input so we need to do a little work prior to assembly.
 
-IDBA used a lot of memory and wasn't feasible with the number of samples. Scripts can still be found in [ibda_assem](ibda_assem/), but ended up going with [megahit](https://github.com/voutcn/megahit) for this initial assembly.
+IDBA used a lot of memory and wasn't feasible with the number of samples. So we need to digitally normalize the reads with BBNorm: "Many assemblers perform poorly in the presence of too much data, and data with irregular coverage, such as MDA-amplified single cells or metagenomes"
+
+scripts can be found in [ibda_assem](ibda_assem/):
 
 ```
-# megahit allows for cross-assembly of the replicates A,B,C
+## we have technical replicates of the sampleIDs in 3 different copies
+## combine these 3 technical replicates and assemble from there
 
-READ1=$REFBASE/${REF}_A.filter.clean.R1.fq.gz,$REFBASE/${REF}_B.filter.clean.R1.fq.gz,$REFBASE/${REF}_C.filter.clean.R1.fq.gz
-READ2=$REFBASE/${REF}_A.filter.clean.R2.fq.gz,$REFBASE/${REF}_B.filter.clean.R2.fq.gz,$REFBASE/${REF}_C.filter.clean.R2.fq.gz
+cat ${REF}_A.fix.R1.fq.gz ${REF}_B.fix.R1.fq.gz ${REF}_C.fix.R1.fq.gz > $OUTDIR/${REF}.fix.R1.fq.gz 
+cat ${REF}_A.fix.R2.fq.gz ${REF}_B.fix.R2.fq.gz ${REF}_C.fix.R2.fq.gz > $OUTDIR/${REF}.fix.R2.fq.gz 
 
-cd $OUTDIR
+bbnorm.sh \
+in=${REF}.fix.R1.fq.gz in2=${REF}.fix.R2.fq.gz \
+target=40 mindepth=2 threads=${THREAD} \
+out=${REF}.norm.R1.fq.gz out2=${REF}.norm.R2.fq.gz
 
-# Megahit - much less resource-intensive than metaSPades or IDBA with comparable results
+## IDBA needs the reads to be in fastA format 
+fq2fa --merge <(zcat ${REF}.norm.R1.fq.gz) <(zcat ${REF}.norm.R2.fq.gz) ${REF}.fas
 
-megahit \
--1 $READ1 \
--2 $READ2 \
--t 16 \
---min-count 3 \
---k-list 31,41,51,61,71,81,91,95,101,105,111 \
---kmin-1pass \
---min-contig-len 1000 \
---memory 0.95 \
---out-dir ${REF} \
---continue
-
+idba_ud -r ${REF}.fas --pre_correction \
+--mink 30 --maxk 200 --step 10 --num_threads ${THREAD} \
+--min_contig 2000 --out ${REF}
 
 ## extra precaution to gets reads into suitable format for binning steps
-bbduk.sh in=${REF}/final.contigs.fa out=$OUTDIR/${REF}.contigs.L1kbp.temp.fna minlen=1000 ow=t
+bbduk.sh in=${REF}/contig.fa out=$OUTDIR/${REF}.contigs.L2kbp.temp.fna minlen=2000 ow=t
 
-rename.sh in=$OUTDIR/${REF}.contigs.L1kbp.temp.fna \
-out=$OUTDIR/${REF}.contigs.L1kbp.fna prefix=${REF} addprefix=t ow=t
+rename.sh in=$OUTDIR/${REF}.contigs.L2kbp.temp.fna \
+out=$OUTDIR/${REF}.contigs.L2kbp.fna prefix=${REF} addprefix=t ow=t
 
 rm -rf $OUTDIR/${REF}/
-rm -f $OUTDIR/${REF}.contigs.L1kbp.temp.fna
+rm -f $OUTDIR/${REF}.contigs.L2kbp.temp.fna
 
 ```
 
-All scripts to process this step are located in [mega_assem](mega_assem/)
